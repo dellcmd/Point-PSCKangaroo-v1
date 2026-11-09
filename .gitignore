@@ -1,0 +1,25 @@
+# Binaries and object files
+*.o
+point
+
+# Massive storage and sidecar database files (DO NOT COMMIT)
+*.bin
+*.bin.meta
+*.bin.prefilter
+massive_tames.bin
+massive_tames.bin.*
+
+# Text exports and dump files
+*.txt
+*.log
+
+# Temporary and editor files
+.vscode/
+*.swp
+*~
+
+# Local documentation (not committed to public repo)
+README_AR.md
+*AR.md
+
+
