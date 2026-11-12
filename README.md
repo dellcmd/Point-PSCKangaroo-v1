@@ -81,7 +81,7 @@ Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from p
   The foundational state-of-the-art (SOTA) Pollard's Kangaroo solver for secp256k1, introducing equivalence classes, negation maps ($K \approx 1.15$), and GPU core architectures.
 * **[VanitySearch / DRS62 by Jean-Luc Pons](https://github.com/JeanLucPons/VanitySearch)**  
   High-performance secp256k1 elliptic curve arithmetic, DRS62 fast modular inversion (`fast_modinv`), and optimized assembly primitives.
-* **[tames-gen Engine](https://github.com/albertobsd/keyhunt)**  
+* **[tames-gen Engine by providiu](https://github.com/providiu/tames-gen)**  
   Multi-threaded CPU Montgomery batch inversion architectures, HugePage allocation models, and cacheline-aligned step tracking.
 
 ---
