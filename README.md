@@ -102,7 +102,7 @@ Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from p
 | `-p` | Flag | `false` | Enables Mix-Parity mode (50% Even + 50% Odd distances). Alias: `-mixparity`. |
 | `-out <FILE>` | Path | `massive_tames.bin` | Output path for the binary hash table file. |
 | `-ramlimit <GB>`| Float | `10.0` | Maximum system RAM / NVMe storage budget in Gigabytes. |
-| `-txt <FILE>` | Path | *None* | Concurrently exports points in plain text (`<dist_hex> <x_hex>`). |
+| `-txt <FILE>` | Path | *None* | Concurrently exports points in plain text (`Distance_Hex X_Coordinate_Hex`). |
 | `-resumenvme` | Flag | `auto` | Resumes and appends to an existing `.bin` file using its `.meta` sidecar. |
 | `-wipe` | Flag | `false` | Forces wiping the existing binary table and starts fresh from 0 points. |
 | `-checkpoint <M>`| Integer | `15` | Interval in minutes for background disk flushes (`msync`) and `.meta` updates. |
@@ -160,37 +160,43 @@ make clean && make -j$(nproc)
 ### Example 1: Standard Hybrid Generation on Puzzle 100 (GPU 0 + All CPU Cores)
 Generates 10 million Distinguished Points for Puzzle 100 with DP 28, combining GPU 0 with all CPU threads:
 ```bash
-./point -range 100 -dp 28 -start 0 -gpu 0 -w auto -b 64 -p -target 10M -ramlimit 10 -out massive_tames.bin
+./point -range 100 -dp 28 -start 0 -gpu 0 -w auto -b 64 -p \
+  -target 10M -ramlimit 10 -out massive_tames.bin
 ```
 
 ### Example 2: Direct Mode Generation for High-Bit Puzzle 135
-Targets Puzzle 135 ($[2^{134}, 2^{135}-1]$) directly using `-start 0`. Allocates a 20 GB table for 1 billion points across 4 GPUs:
+Targets Puzzle 135 (`[2^134, 2^135 - 1]`) directly using `-start 0`. Allocates a 20 GB table for 1 billion points across 4 GPUs:
 ```bash
-./point -range 135 -dp 28 -start 0 -gpu 4 -w 32 -b 64 -p -target 1B -ramlimit 20 -wipe -out massive_tames.bin
+./point -range 135 -dp 28 -start 0 -gpu 4 -w 32 -b 64 -p \
+  -target 1B -ramlimit 20 -wipe -out massive_tames.bin
 ```
 
 ### Example 3: Dual-Parity with Real-Time Plaintext Export (`-txt`)
-Generates points while simultaneously streaming every single DP in human-readable plaintext (`<distance_hex> <x_hex>`) for external analysis, sorting, or independent verification:
+Generates points while simultaneously streaming every single DP in human-readable plaintext format (`Distance_Hex X_Coordinate_Hex`) for external sorting, deduplication, or independent verification:
 ```bash
-./point -range 100 -dp 28 -start 0 -gpu 0 -w 28 -b 64 -p -target 10M -txt points_dump.txt -wipe
+./point -range 100 -dp 28 -start 0 -gpu 0 -w 28 -b 64 -p \
+  -target 10M -txt points_dump.txt -wipe
 ```
 
 ### Example 4: CPU-Only Generation (Zero GPU Utilization)
 Ideal for background servers, VPS instances without graphics hardware, or generating points while the GPU is occupied:
 ```bash
-./point -range 100 -dp 28 -start 0 -gpu none -w 28 -b 64 -vita 4M -p -target 5M -ramlimit 8
+./point -range 100 -dp 28 -start 0 -gpu none -w 28 -b 64 -vita 4M -p \
+  -target 5M -ramlimit 8
 ```
 
 ### Example 5: GPU-Only Generation (CPU Kangaroo Walking Disabled)
 Drives the GPU at maximum throughput while keeping CPU usage minimal (only draining GPU result queues):
 ```bash
-./point -range 100 -dp 28 -start 0 -gpu 0 -w 0 -p -target 20M -ramlimit 10
+./point -range 100 -dp 28 -start 0 -gpu 0 -w 0 -p \
+  -target 20M -ramlimit 10
 ```
 
 ### Example 6: Resuming and Appending to an Existing Database
 Safely resumes an existing session. Restores the exact point count and L3 filter in milliseconds:
 ```bash
-./point -range 100 -dp 28 -start 0 -gpu 0 -w auto -p -target 50M -resumenvme
+./point -range 100 -dp 28 -start 0 -gpu 0 -w auto -p \
+  -target 50M -resumenvme
 ```
 
 ---
