@@ -10,20 +10,21 @@
 
 ## 📑 Table of Contents
 
-1. [Project Concept & Overview](#-project-concept--overview)
-2. [Key Developments & Technical Upgrades](#-key-developments--technical-upgrades)
-3. [Base Projects & Acknowledgments](#-base-projects--acknowledgments)
-4. [Core CLI Parameters Reference](#-core-cli-parameters-reference)
-5. [Compilation Guide (Direct Commands per GPU Architecture)](#-compilation-guide)
-6. [Real Operational Examples](#-real-operational-examples)
-7. [Plaintext Export (`-txt`) & Real Output Verification](#-plaintext-export--txt--real-output-verification)
-8. [Direct Integration with PSCKangaroo Solver](#-direct-integration-with-psckangaroo-solver)
-9. [Donation & Development Support](#-donation--development-support)
-10. [License](#-license)
-11. [Community & Contact](#-community--contact)
+1. [Project Concept & Overview](#concept)
+2. [Key Developments & Technical Upgrades](#upgrades)
+3. [Base Projects & Acknowledgments](#base-projects)
+4. [Core CLI Parameters Reference](#parameters)
+5. [Compilation Guide (Direct Commands per GPU Architecture)](#compilation)
+6. [Real Operational Examples](#examples)
+7. [Plaintext Export (-txt) & Real Output Verification](#txt-export)
+8. [Direct Integration with PSCKangaroo Solver](#integration)
+9. [Donation & Development Support](#donation)
+10. [License](#license)
+11. [Community & Contact](#contact)
 
 ---
 
+<a id="concept"></a>
 ## 📖 Project Concept & Overview
 
 **Point-PSCKangaroo-v1** is an industrial-grade, ultra-high-throughput generator of Distinguished Points (DPs / TAMEs) designed specifically for solving secp256k1 Elliptic Curve Discrete Logarithm Problems (ECDLP), including Bitcoin Puzzle transactions.
@@ -58,6 +59,7 @@ Because Point-PSCKangaroo-v1 uses the exact deterministic jump tables (`EcJumps1
 
 ---
 
+<a id="upgrades"></a>
 ## 🚀 Key Developments & Technical Upgrades
 
 * **Hybrid GPU + CPU Co-Processing:** Combines full GPU compute with all logical CPU threads running parallel SOTA kangaroo walks.
@@ -73,6 +75,7 @@ Because Point-PSCKangaroo-v1 uses the exact deterministic jump tables (`EcJumps1
 
 ---
 
+<a id="base-projects"></a>
 ## 🏛️ Base Projects & Acknowledgments
 
 Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from pioneering open-source cryptographic solvers:
@@ -86,6 +89,7 @@ Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from p
 
 ---
 
+<a id="parameters"></a>
 ## ⚙️ Core CLI Parameters Reference
 
 | Parameter | Type | Default | Description |
@@ -109,6 +113,7 @@ Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from p
 
 ---
 
+<a id="compilation"></a>
 ## 🛠️ Compilation Guide
 
 Compile the binary directly for your target GPU architecture. Run the command matching your hardware:
@@ -155,6 +160,7 @@ make clean && make -j$(nproc)
 
 ---
 
+<a id="examples"></a>
 ## 💡 Real Operational Examples
 
 ### Example 1: Standard Hybrid Generation on Puzzle 100 (GPU 0 + All CPU Cores)
@@ -201,7 +207,8 @@ Safely resumes an existing session. Restores the exact point count and L3 filter
 
 ---
 
-## 📄 Plaintext Export (`-txt`) & Real Output Verification
+<a id="txt-export"></a>
+## 📄 Plaintext Export (-txt) & Real Output Verification
 
 When `-txt <FILE>` is passed, Point-PSCKangaroo-v1 outputs raw text records of every generated Distinguished Point.
 
@@ -235,6 +242,7 @@ Each record contains the 144-bit scalar walk distance (36 hex characters) follow
 
 ---
 
+<a id="integration"></a>
 ## 🔗 Direct Integration with PSCKangaroo Solver
 
 Once your target volume of TAME points is generated in `massive_tames.bin`, execute **PSCKangaroo** pointing to the exact same file:
@@ -253,6 +261,7 @@ Once your target volume of TAME points is generated in `massive_tames.bin`, exec
 
 ---
 
+<a id="donation"></a>
 ## 💰 Donation & Development Support
 
 If you find this project valuable for your ECDLP cryptographic research and would like to support continuous performance optimizations and new algorithm integrations:
@@ -263,6 +272,7 @@ Your contributions help support further hardware benchmarks, cluster scaling, an
 
 ---
 
+<a id="license"></a>
 ## 📄 License
 
 This project is open-source software licensed under the **GNU General Public License v3.0 (GPLv3)**.  
@@ -270,6 +280,7 @@ See the [GNU GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.html) for full 
 
 ---
 
+<a id="contact"></a>
 ## 💬 Community & Contact
 
 * **Telegram:** [@Dellcmd](https://t.me/Dellcmd)
