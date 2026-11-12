@@ -1,43 +1,97 @@
-# ⚡ Point PSCKangaroo
+# ⚡ Point-PSCKangaroo-v1
 
 **High-Performance Hybrid GPU + Multi-Core CPU Distinguished Point (TAME) Generator for secp256k1 ECDLP (Pollard's Kangaroo)**
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20x86__64-orange.svg)]()
+[![CUDA](https://img.shields.io/badge/CUDA-11.x%20%7C%2012.x-green.svg)]()
+
+---
+
+## 📑 Table of Contents
+
+1. [Project Concept & Overview](#-project-concept--overview)
+2. [Key Developments & Technical Upgrades](#-key-developments--technical-upgrades)
+3. [Base Projects & Acknowledgments](#-base-projects--acknowledgments)
+4. [Core CLI Parameters Reference](#-core-cli-parameters-reference)
+5. [Compilation Guide (Direct Commands per GPU Architecture)](#-compilation-guide)
+6. [Real Operational Examples](#-real-operational-examples)
+7. [Plaintext Export (`-txt`) & Real Output Verification](#-plaintext-export--txt--real-output-verification)
+8. [Direct Integration with PSCKangaroo Solver](#-direct-integration-with-psckangaroo-solver)
+9. [Donation & Development Support](#-donation--development-support)
+10. [License](#-license)
+11. [Community & Contact](#-community--contact)
 
 ---
 
 ## 📖 Project Concept & Overview
 
-**Point PSCKangaroo** is an ultra-fast, industrial-grade generator of Distinguished Points (DPs / TAMEs) designed for solving secp256k1 Elliptic Curve Discrete Logarithm Problems (ECDLP) using Pollard's Kangaroo algorithm. 
+**Point-PSCKangaroo-v1** is an industrial-grade, ultra-high-throughput generator of Distinguished Points (DPs / TAMEs) designed specifically for solving secp256k1 Elliptic Curve Discrete Logarithm Problems (ECDLP), including Bitcoin Puzzle transactions.
 
-In standard Kangaroo solvers, precious GPU time during the hunt is split between generating TAME kangaroos and hunting with WILD kangaroos. **Point PSCKangaroo** decouples this process:
-1. It pre-computes millions or billions of valid TAME Distinguished Points using both the GPU (CUDA SOTA) and all available CPU cores (x86-64 BMI2/ADX assembly + Montgomery Batch Inversion) simultaneously.
-2. It stores points in a shared, ultra-compact 16-byte hash table (`massive_tames.bin`) with zero serialization overhead via memory-mapped NVMe storage.
-3. Once the target points are generated, the companion solver **PSCKangaroo** launches immediately in **100% WILD Hunt Mode**, maximizing collision probability from the very first second ($P \propto t^2$).
+In traditional Kangaroo implementations, precious GPU time during search sessions is divided between generating TAME reference points and hunting with WILD kangaroos. **Point-PSCKangaroo-v1** decouples this architecture into two independent, highly optimized phases:
 
-Because Point PSCKangaroo uses the exact same deterministic jump tables (`EcJumps1`, `EcJumps2`, `EcJumps3`) and SOTA equivalence-class negation maps as PSCKangaroo, all precomputed TAMEs are 100% mathematically compatible and yield instantaneous collisions.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   PHASE 1: Point-PSCKangaroo-v1                        │
+│   CUDA GPUs (100% TAME)  +  All CPU Cores (DRS62 / BMI2 / ADX Batch)   │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Memory-Mapped Shared NVMe
+                                    ▼
+                     ┌─────────────────────────────┐
+                     │     massive_tames.bin       │
+                     │  16-Byte Ultra-Compact SOTA │
+                     │  + .meta & .prefilter (L3)  │
+                     └──────────────┬──────────────┘
+                                    │ Instant Sidecar Resume (<1ms)
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                    PHASE 2: PSCKangaroo Solver                         │
+│               100% WILD Kangaroos Hunting from Second 1                │
+│             Quadratic Probability Growth: P(collision) ∝ t²            │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Massive Precomputation:** Simultaneously leverages 100% of GPU resources and all available logical CPU cores (using DRS62 assembly and Montgomery Batch Inversion) to pre-calculate millions or billions of valid TAME Distinguished Points.
+2. **Compact Shared Storage:** Stores points in a shared 16-byte hash table (`massive_tames.bin`) mapped directly to NVMe storage via `mmap` with zero serialization latency.
+3. **Instant 100% WILD Hunt:** Once populated, the companion solver **PSCKangaroo** launches immediately in **100% WILD Mode**, maximizing collision probability from the very first second ($P \propto t^2$).
+
+Because Point-PSCKangaroo-v1 uses the exact deterministic jump tables (`EcJumps1`, `EcJumps2`, `EcJumps3`) and equivalence-class negation maps as PSCKangaroo, all precomputed points are 100% mathematically compatible and yield instantaneous collisions upon path intersections.
 
 ---
 
-## 🚀 Key Developments & Recent Upgrades
+## 🚀 Key Developments & Technical Upgrades
 
-* **Hybrid GPU + CPU Co-Processing:** Harnesses 100% of GPU compute alongside all logical CPU cores running parallel SOTA kangaroo walks.
-* **x86-64 BMI2/ADX Assembly Acceleration:** Powered by Jean-Luc Pons DRS62 modular arithmetic for ultra-fast point additions on modern CPUs.
-* **Montgomery Batch Inversion:** Processes 64 to 256 kangaroo steps per thread simultaneously with a single modular inversion via `-b <size>`.
-* **3-Tier HugePage Memory Management:** Dynamically allocates memory through 1 GB HugePages, 2 MB HugePages, or kernel Transparent HugePages (THP) to eliminate TLB cache misses.
-* **Instant Sidecar Metadata (`.meta` & `.prefilter`):** Saves and restores database states and 512 MB L3 Pre-Filters in milliseconds without rescanning multi-gigabyte files.
-* **Dual-Parity Support (`-p` / `-mixparity`):** Enables 50% Even + 50% Odd initial distances to ensure full subspace coverage for odd and even private keys.
-* **Vita Life-Cycle & Macro-Cycle Detection (`-vita`):** Automatically detects 2-cycles, short loops, and macro-cycles on CPU, respawning stale kangaroos after a configurable lifespan.
-* **Direct Mode (`-start 0`):** Automatically maps searches to the exact puzzle range without relative offset complexities.
-* **Exact Target Limit Accounting (`-target`):** Automatically reserves point slots and gracefully shuts down once the exact desired count is reached.
-* **Lock-Free Ring Buffers:** Zero-contention SPSC queues connecting GPU completion handlers with CPU worker threads.
+* **Hybrid GPU + CPU Co-Processing:** Combines full GPU compute with all logical CPU threads running parallel SOTA kangaroo walks.
+* **x86-64 BMI2/ADX Assembly Acceleration:** Modular arithmetic accelerated via Jean-Luc Pons DRS62 assembly routines for maximum CPU scalar addition speeds.
+* **Montgomery Batch Inversion:** Simultaneously steps 64 to 256 kangaroos per CPU thread using a single modular inversion via `-b <batch_size>`.
+* **3-Tier HugePage Memory Management:** Allocates hash tables and ring queues across 1 GB HugePages, 2 MB HugePages, or Transparent HugePages (THP) to eliminate TLB misses.
+* **Instant Sidecar Metadata (`.meta` & `.prefilter`):** Restores database state, total operations, and 512 MB L3 Pre-Filters in less than 1 millisecond without scanning gigabytes of disk.
+* **Dual-Parity Walking (`-p` / `-mixparity`):** Configures 50% Even + 50% Odd initial distances, providing complete coverage across both odd and even private key spaces.
+* **Vita Life-Cycle & Macro-Cycle Escape (`-vita`):** Automatically detects 2-cycles, short loops, and macro-cycles on CPU, respawning stale kangaroos after a designated step limit.
+* **Direct Range Mode (`-start 0`):** Maps puzzle searches directly to target intervals $[2^{N-1}, 2^N-1]$ without relative offset arithmetic errors.
+* **Exact Target Limit Accounting (`-target`):** Reserves slots and terminates execution immediately upon reaching the exact user-defined point count.
+* **Lock-Free SPSC Ring Buffers:** Thread-safe, contention-free circular buffers transferring GPU points directly to CPU worker threads.
 
 ---
 
-## ⚙️ Core Parameters Reference
+## 🏛️ Base Projects & Acknowledgments
+
+Point-PSCKangaroo-v1 builds upon and incorporates algorithmic discoveries from pioneering open-source cryptographic solvers:
+
+* **[RCKangaroo by RetiredCoder (RC)](https://github.com/RetiredC/RCKangaroo)**  
+  The foundational state-of-the-art (SOTA) Pollard's Kangaroo solver for secp256k1, introducing equivalence classes, negation maps ($K \approx 1.15$), and GPU core architectures.
+* **[VanitySearch / DRS62 by Jean-Luc Pons](https://github.com/JeanLucPons/VanitySearch)**  
+  High-performance secp256k1 elliptic curve arithmetic, DRS62 fast modular inversion (`fast_modinv`), and optimized assembly primitives.
+* **[tames-gen Engine](https://github.com/albertobsd/keyhunt)**  
+  Multi-threaded CPU Montgomery batch inversion architectures, HugePage allocation models, and cacheline-aligned step tracking.
+
+---
+
+## ⚙️ Core CLI Parameters Reference
 
 | Parameter | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `-range <N>` | Integer | *Required* | Target puzzle bit length (e.g., `100` or `135`). Range: 32–170. |
-| `-start <HEX>` | Hex / `0` | `0` | Starting offset. Use `0` for Direct Mode (auto-sets range to $[2^{N-1}, 2^N-1]$). |
+| `-start <HEX>` | Hex / `0` | `0` | Starting scalar offset. Use `0` for Direct Mode (auto-sets range to $[2^{N-1}, 2^N-1]$). |
 | `-dp <BITS>` | Integer | `28` | Number of distinguished point zero-bits required on X coordinate. |
 | `-target <N>` | String | `0` (Inf) | Point limit. Accepts multipliers like `10M`, `50M`, `1B`. Aliases: `-points`, `-maxpts`, `-count`, `-n`. |
 | `-gpu <DEV>` | String | `0` | Target GPU device index, mask (`0123`), or `none` to run exclusively on CPU. |
@@ -103,7 +157,7 @@ make clean && make -j$(nproc)
 
 ## 💡 Real Operational Examples
 
-### Example 1: Standard Hybrid Generation on Puzzle 100 (GPU + All CPU Cores)
+### Example 1: Standard Hybrid Generation on Puzzle 100 (GPU 0 + All CPU Cores)
 Generates 10 million Distinguished Points for Puzzle 100 with DP 28, combining GPU 0 with all CPU threads:
 ```bash
 ./point -range 100 -dp 28 -start 0 -gpu 0 -w auto -b 64 -p -target 10M -ramlimit 10 -out massive_tames.bin
@@ -119,34 +173,6 @@ Targets Puzzle 135 ($[2^{134}, 2^{135}-1]$) directly using `-start 0`. Allocates
 Generates points while simultaneously streaming every single DP in human-readable plaintext (`<distance_hex> <x_hex>`) for external analysis, sorting, or independent verification:
 ```bash
 ./point -range 100 -dp 28 -start 0 -gpu 0 -w 28 -b 64 -p -target 10M -txt points_dump.txt -wipe
-```
-
-#### 🔍 Actual Real Output Generated by `-txt`:
-Each line represents an authenticated Distinguished Point containing the 144-bit scalar walk distance (36 hex chars) followed by the 96-bit lower X-coordinate suffix (24 hex chars):
-```text
-000000000080A23C0637854A4347700EFBF 78CD2E635D4EA8C41FCCE55A
-000000000080A536D5411B403434C18DEA8 F8FD8F2023A7B134E4F3C7A0
-000000000080FEFB3F1EDE555FE3163ECA3 6BB2B193CB0DC24101953A48
-000000000080EC8679A1D1D42EE68AE5F75 1F04DA2B1AFE2FFC00A2F66E
-0000000000801AF5234D677F27CAB01D56C 1EEE51979A86FCAC23D103FF
-00000000008027D11B6C4F1A88BE0C215A4 3A48B227B13A17B9D6E115AC
-00000000008035AE1634C2B1D781F43E219 924B68AC1056CFBAE228B104
-```
-
-#### 🖥️ Real Live Operational Dashboard from an Actual Execution:
-```text
-================================================================================
- [POINT HYBRID v2] Total: 1.559 GKeys/s (GPU: 1.48 GK/s + CPU: 77.6 MK/s) | 0d 00h 03m 12s
---------------------------------------------------------------------------------
-  Hardware Active: 1 GPU(s) (196608 Kangs) + 28 CPU Threads (64 Batch = 1792 Kangs)
-  Range & DP     : Range 100 bits (Span 2^99) | DP 28 (1 DP / 2^28 jumps) | Shift 2^53
-  Start Offset   : 0x0000000000000000000000000000000000000008000000000000000000000000
-  Stored in .bin : 1,024,512 DPs (1.025M) | New: +1024512 (GPU: 973280 | CPU: 51232)
-  Target Goal    : 1,024,512 / 10,000,000 DPs (10.25%) | Rem: 8,975,488 | ETA: 0d 00h 25m 40s
-  Table Capacity : 1,024,512 / 436,076,544 slots (0.23% full) | File: massive_tames.bin (7.00 GB)
-  DP Gen Rate    : 5.81 DPs/s (Theo: 5.75/s) | 348 DPs/min | 20916 DPs/hour
-  Step Coverage  : 2^48.12 steps in .bin | Session Ops: 2^48.10 (CPU Escapes: 142)
-================================================================================
 ```
 
 ### Example 4: CPU-Only Generation (Zero GPU Utilization)
@@ -169,9 +195,43 @@ Safely resumes an existing session. Restores the exact point count and L3 filter
 
 ---
 
+## 📄 Plaintext Export (`-txt`) & Real Output Verification
+
+When `-txt <FILE>` is passed, Point-PSCKangaroo-v1 outputs raw text records of every generated Distinguished Point.
+
+### 🔍 Actual Real Output Generated by `-txt`:
+Each record contains the 144-bit scalar walk distance (36 hex characters) followed by the lower 96-bit X-coordinate suffix (24 hex characters):
+```text
+000000000080A23C0637854A4347700EFBF 78CD2E635D4EA8C41FCCE55A
+000000000080A536D5411B403434C18DEA8 F8FD8F2023A7B134E4F3C7A0
+000000000080FEFB3F1EDE555FE3163ECA3 6BB2B193CB0DC24101953A48
+000000000080EC8679A1D1D42EE68AE5F75 1F04DA2B1AFE2FFC00A2F66E
+0000000000801AF5234D677F27CAB01D56C 1EEE51979A86FCAC23D103FF
+00000000008027D11B6C4F1A88BE0C215A4 3A48B227B13A17B9D6E115AC
+00000000008035AE1634C2B1D781F43E219 924B68AC1056CFBAE228B104
+```
+
+### 🖥️ Real Live Operational Dashboard:
+```text
+================================================================================
+ [POINT HYBRID v2] Total: 1.559 GKeys/s (GPU: 1.48 GK/s + CPU: 77.6 MK/s) | 0d 00h 03m 12s
+--------------------------------------------------------------------------------
+  Hardware Active: 1 GPU(s) (196608 Kangs) + 28 CPU Threads (64 Batch = 1792 Kangs)
+  Range & DP     : Range 100 bits (Span 2^99) | DP 28 (1 DP / 2^28 jumps) | Shift 2^53
+  Start Offset   : 0x0000000000000000000000000000000000000008000000000000000000000000
+  Stored in .bin : 1,024,512 DPs (1.025M) | New: +1024512 (GPU: 973280 | CPU: 51232)
+  Target Goal    : 1,024,512 / 10,000,000 DPs (10.25%) | Rem: 8,975,488 | ETA: 0d 00h 25m 40s
+  Table Capacity : 1,024,512 / 436,076,544 slots (0.23% full) | File: massive_tames.bin (7.00 GB)
+  DP Gen Rate    : 5.81 DPs/s (Theo: 5.75/s) | 348 DPs/min | 20916 DPs/hour
+  Step Coverage  : 2^48.12 steps in .bin | Session Ops: 2^48.10 (CPU Escapes: 142)
+================================================================================
+```
+
+---
+
 ## 🔗 Direct Integration with PSCKangaroo Solver
 
-Once your desired volume of TAME points is generated, run **PSCKangaroo** pointing to the exact same `massive_tames.bin`:
+Once your target volume of TAME points is generated in `massive_tames.bin`, execute **PSCKangaroo** pointing to the exact same file:
 
 ```bash
 # Launch PSCKangaroo in 100% WILD Hunt Mode against the precomputed database:
@@ -180,24 +240,32 @@ Once your desired volume of TAME points is generated, run **PSCKangaroo** pointi
   -start 0 -resumenvme -p -w 32 -b 64
 ```
 
-**What Happens:**
-* PSCKangaroo loads `massive_tames.bin.meta` instantly.
-* It skips the TAME generation phase completely.
-* 100% of GPU and CPU computational capacity is dedicated to hunting with WILD kangaroos against your precomputed points, delivering maximum collision efficiency.
+**Operational Sequence:**
+1. PSCKangaroo detects and parses `massive_tames.bin.meta` in under 1 millisecond.
+2. It bypasses TAME generation entirely.
+3. 100% of GPU compute and CPU threads immediately execute WILD kangaroo walks hunting against the precomputed points, delivering maximum collision efficiency.
 
 ---
 
-## 📄 License & Attribution
+## 💰 Donation & Development Support
 
-* **License:** GNU General Public License v3 (GPLv3).
-* **Base Architecture:** Derived from RetiredCoder's RCKangaroo SOTA engine.
-* **Modular Math & Batch Optimizations:** Integrated from Jean-Luc Pons DRS62 and `tames-gen` assembly routines.
+If you find this project valuable for your ECDLP cryptographic research and would like to support continuous performance optimizations and new algorithm integrations:
+
+* **Bitcoin (BTC):** `bc1qsca4zt69ny9hc54wqd4neu6eu2shh2cr8ezfn0`
+
+Your contributions help support further hardware benchmarks, cluster scaling, and open-source cryptographic development.
+
+---
+
+## 📄 License
+
+This project is open-source software licensed under the **GNU General Public License v3.0 (GPLv3)**.  
+See the [GNU GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.html) for full details.
 
 ---
 
 ## 💬 Community & Contact
 
-* **Telegram:** [@P2pm0](https://t.me/P2pm0)
-* **GitHub Repository:** [Point-PSCKangaroo](https://github.com/P2pm0/Point-PSCKangaroo)
-* **Issues & Discussions:** Feel free to open an issue or reach out directly on Telegram for optimizations, custom benchmarks, and cluster deployment setups.
-
+* **Telegram:** [@Dellcmd](https://t.me/Dellcmd)
+* **GitHub Repository:** [https://github.com/dellcmd/Point-PSCKangaroo-v1](https://github.com/dellcmd/Point-PSCKangaroo-v1)
+* **Issues & Discussions:** For performance feedback, bug reports, and cluster setup questions, please open an issue in this repository or reach out directly on Telegram.
